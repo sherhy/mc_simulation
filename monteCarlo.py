@@ -63,12 +63,14 @@ def monteCarloSim(n):
     dlessTemp = 2.74
 
     border = n+1
-    particles = [Particle(i,j,f"{i}{j}") for i in range(-n, n+1) for j in range(-n, n+1)]
+    particles = [Particle(i,j,f"{i}{j}") 
+        for i in range(-n, n+1) for j in range(-n, n+1)]
     N = len(particles)
 
     # plot(particles)
 
-    LJP = sum([getLJP(particles[i], particles[j]) for j in range(N) for i in range(N)])
+    LJP = sum([getLJP(particles[i], particles[j]) 
+        for j in range(N) for i in range(N)])
 
     nudgeCount = 0
     monteCarloCycle = 0
@@ -84,10 +86,14 @@ def monteCarloSim(n):
 
         # alter position of single atom
         randIndex = int(random()*N)
-        oldPotential = sum([getLJP(particles[randIndex], p) for p in particles])
+        oldPotential = sum(
+            [getLJP(particles[randIndex], p) for p in particles])
 
         nudge = randomVector()
-        newParticle = Particle(particles[randIndex].pos.x, particles[randIndex].pos.y)
+        newParticle = Particle(
+            particles[randIndex].pos.x, 
+            particles[randIndex].pos.y)
+
         newParticle.pos.add(nudge)
         newParticle.checkLimits(border)
 
@@ -108,21 +114,35 @@ def monteCarloSim(n):
         particles[randIndex].checkLimits(border)    
 
         # compare with previous state
-        # updatedPotential = sum([getLJP(particles[randIndex], particles[j]) for j in range(N)])
+        # updatedPotential = sum(
+        #     [getLJP(particles[randIndex], particles[j]) for j in range(N)])
         
         # check that energy state is conserved
         LJP += (newPotential - oldPotential)
 
-    print(f"nudge ratio: {int(nudgeCount/monteCarloCycle * 100)}% out of {monteCarloCycle}")
+    print(f"nudge ratio: \
+        {int(nudgeCount/monteCarloCycle * 100)}% out of {monteCarloCycle}")
     return particles
     
 
 one = monteCarloSim(5)
 
+def g(plist, r):
+    dr = 0.2
+    for p in plist:
+        distances = list(map(lambda point: 
+            point.pos.distanceTo(p.pos).getMagnitude(), plist))
+        inRange = list(filter(lambda length: length - r < dr, distances))
+        #should remove itself that has length 0
+        inRange.sort()
+        inRange.pop(0)
+
+        print(inRange)
+        break
+
+g(one, 2)
 plot(one)
 plt.show()
-
-
 
 ##################
 
@@ -130,4 +150,3 @@ plt.show()
 # p2 = Particle(0, 0)
 # print(p1.pos.distanceTo(p2.pos).getMagnitude())
 # print(getLJP(p1, p2))
-

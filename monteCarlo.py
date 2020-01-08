@@ -15,6 +15,7 @@ class Vector:
     def add(self, v):
         self.x += v.x
         self.y += v.y
+        return self
 
     def sub(self, v):
         self.x -= v.x
@@ -30,23 +31,28 @@ class Vector:
     def getMagnitude(self):
         return sqrt(self.x**2 + self.y**2)
 
-def getLJP(p1, p2):
-    r = p1.pos.distanceTo(p2.pos).getMagnitude()
-    if r == 0 or r > 8: return 0
-    return 4*((1 / r)**12 - (1 / r)**6)
-
-
 class Particle:
+    border = 0
+
     def __init__(self, _x, _y, _name=""):
         self.pos = Vector(_x, _y)
         self.name = _name
 
-    def checkLimits(self, border):
-        if self.pos.x > border: self.pos.x -= border * 2
-        elif self.pos.x < -border: self.pos.x += border * 2
+    def checkLimits(self):
+        if self.pos.x  < -Particle.border: 
+            self.pos.x += Particle.border * 2
+        elif self.pos.x > Particle.border: 
+            self.pos.x -= Particle.border * 2
 
-        if self.pos.y < -border: self.pos.y += border * 2
-        elif self.pos.y > border: self.pos.y -= border * 2
+        if self.pos.y  < -Particle.border: 
+            self.pos.y += Particle.border * 2
+        elif self.pos.y > Particle.border: 
+            self.pos.y -= Particle.border * 2
+
+def getLJP(p1, p2):
+    r = p1.pos.distanceTo(p2.pos).getMagnitude()
+    if r == 0 or r > 8: return 0
+    return 4*((1 / r)**12 - (1 / r)**6)
 
 def plot(plist):
     x = [p.pos.x for p in plist]
@@ -56,26 +62,38 @@ def plot(plist):
 def rand(n=1): 
     return (random()-.5)*n
 
-def randomVector(factor=.5): 
+def randomVector(factor=1): 
     return Vector(rand(factor), rand(factor))
 
 def monteCarloSim(n):
     dlessTemp = 2.74
-
-    border = n+1
-    particles = [Particle(i,j,f"{i}{j}") 
+    Particle.border = n + 1
+    particles = [Particle(i,j,f"{i}{j}")
         for i in range(-n, n+1) for j in range(-n, n+1)]
+
+    # eight ghost cells
+    ghostCells = []
+    ghostCells += [Particle(p.pos.x - 2*(n+1), p.pos.y - 2*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x - 0*(n+1), p.pos.y - 2*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x + 2*(n+1), p.pos.y - 2*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x - 2*(n+1), p.pos.y - 0*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x + 2*(n+1), p.pos.y + 0*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x - 2*(n+1), p.pos.y + 2*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x + 0*(n+1), p.pos.y + 2*(n+1)) for p in particles]
+    ghostCells += [Particle(p.pos.x + 2*(n+1), p.pos.y + 2*(n+1)) for p in particles]
+    
     N = len(particles)
 
     # plot(particles)
 
-    LJP = sum([getLJP(particles[i], particles[j]) 
-        for j in range(N) for i in range(N)])
+    LJP = sum([getLJP(p1, p2) for p1 in particles for p2 in particles])
+    LJP += sum([getLJP(p, gp) for gp in ghostCells for p in particles])
 
     nudgeCount = 0
     monteCarloCycle = 0
     oldLJP = 1
     while True:
+        # logic for breaking out of cycle
         if monteCarloCycle > 20000: break
         if monteCarloCycle % 1000 == 0:
             print(f"{monteCarloCycle//1000} LJP: {LJP}")
@@ -86,8 +104,8 @@ def monteCarloSim(n):
 
         # alter position of single atom
         randIndex = int(random()*N)
-        oldPotential = sum(
-            [getLJP(particles[randIndex], p) for p in particles])
+        oldPotential = sum([getLJP(particles[randIndex], p) for p in particles])
+        oldPotential += sum([getLJP(particles[randIndex], p) for p in ghostCells])
 
         nudge = randomVector()
         newParticle = Particle(
@@ -95,12 +113,13 @@ def monteCarloSim(n):
             particles[randIndex].pos.y)
 
         newParticle.pos.add(nudge)
-        newParticle.checkLimits(border)
+        newParticle.checkLimits()
 
         # get potential
         particlesCopy = particles.copy()
         particlesCopy.pop(randIndex)
         newPotential = sum([getLJP(newParticle, p) for p in particlesCopy])
+        newPotential += sum([getLJP(newParticle, p) for p in ghostCells])
 
         # print(nudge, oldPotential, newPotential)
 
@@ -111,12 +130,17 @@ def monteCarloSim(n):
             if random() > probability: continue
         nudgeCount += 1
         particles[randIndex].pos.add(nudge)
-        particles[randIndex].checkLimits(border)    
+        particles[randIndex].checkLimits()
+        newLocation = particles[randIndex].pos
+        ghostCells[0*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), -2*(n+1)))
+        ghostCells[1*N + randIndex].pos = newLocation.add(Vector(-0*(n+1), -2*(n+1)))
+        ghostCells[2*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), -2*(n+1)))
+        ghostCells[3*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), -0*(n+1)))
+        ghostCells[4*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), +0*(n+1)))
+        ghostCells[5*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), +2*(n+1)))
+        ghostCells[6*N + randIndex].pos = newLocation.add(Vector(+0*(n+1), +2*(n+1)))
+        ghostCells[7*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), +2*(n+1)))
 
-        # compare with previous state
-        # updatedPotential = sum(
-        #     [getLJP(particles[randIndex], particles[j]) for j in range(N)])
-        
         # check that energy state is conserved
         LJP += (newPotential - oldPotential)
 
@@ -133,9 +157,8 @@ def g(plist, r):
         distances = list(map(lambda point: 
             point.pos.distanceTo(p.pos).getMagnitude(), plist))
         inRange = list(filter(lambda length: length - r < dr, distances))
-        #should remove itself that has length 0
-        inRange.sort()
-        inRange.pop(0)
+        inRange.remove(0) #remove the count for itself
+
 
         print(inRange)
         break

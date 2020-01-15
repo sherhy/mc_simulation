@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-from mpl_toolkits.mplot3d import Axes3D
+import shelve
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.mplot3d import Axes3D
 from random import random, seed
 from math import sqrt, log, exp
 
@@ -58,12 +60,6 @@ def getLJP(p1, p2):
     if r == 0 or r > 8: return 0
     return 4*((1 / r)**12 - (1 / r)**6)
 
-def plot(plist):
-    x = [p.pos.x for p in plist]
-    y = [p.pos.y for p in plist]
-    z = [p.pos.z for p in plist]
-    ax.scatter(x, y, z, alpha=0.7)
-
 def rand(n=1): 
     return (random()-.5)*n
 
@@ -75,70 +71,57 @@ def makeGhost(x, y, z, plist):
     return [Particle(
         p.pos.x + x * boundary, 
         p.pos.y + y * boundary, 
-        p.pos.z + z * boundary) 
-    for p in plist]
+        p.pos.z + z * boundary) for p in plist]
 
 
-def monteCarloSim(n):
-    dlessTemp = 2.74
+def monteCarloSim(n, shelved = False):
+    if not shelved:
+        dlessTemp = 2.74
+        Particle.border = n + 1
+        nudgeCount = 0
+        monteCarloCycle = 0
+
+        particles = [Particle(i,j,k,f"{i}{j}") 
+            for i in range(-n, n+1) 
+            for j in range(-n, n+1) 
+            for k in range(-n, n+1)]
+
+        ghostCells = []
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                for k in range(-1, 2):
+                    if i == 0 and j == 0 and k == 0: continue
+                    ghostCells += makeGhost(k, j, i, particles)
+
+        LJP = sum([getLJP(p1, p2) for p1 in particles for p2 in particles])
+        LJP += sum([getLJP(p, gp) for gp in ghostCells for p in particles])
+    else:
+        n = shelved["n"]
+        dlessTemp  = shelved["dlessTemp"]
+        nudgeCount = shelved["nudgeCount"]
+        monteCarloCycle = shelved["cycleCount"]
+        particles  = shelved["plist"]
+        ghostCells = shelved["ghost"]
+        LJP = shelved["LJP"]
+
     Particle.border = n + 1
-    particles = [Particle(i,j,k,f"{i}{j}")
-        for i in range(-n, n+1) for j in range(-n, n+1) for k in range(-n, n+1)]
-
-    # eight ghost cells
-    ghostCells = []
-
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            for k in range(-1, 2):
-                if i == 0 and j == 0 and k == 0: continue
-                ghostCells += makeGhost(k, j, i, particles)
-
-    # ghostCells += makeGhost(-1, -1, -1, particles)
-    # ghostCells += makeGhost( 0, -1, -1, particles)
-    # ghostCells += makeGhost( 1, -1, -1, particles)
-    # ghostCells += makeGhost(-1,  0, -1, particles)
-    # ghostCells += makeGhost( 0,  0, -1, particles)
-    # ghostCells += makeGhost( 1,  0, -1, particles)
-    # ghostCells += makeGhost(-1,  1, -1, particles)
-    # ghostCells += makeGhost( 0,  1, -1, particles)
-    # ghostCells += makeGhost( 1,  1, -1, particles)
-
-    # ghostCells += makeGhost(-1, -1,  0, particles)
-    # ghostCells += makeGhost( 0, -1,  0, particles)
-    # ghostCells += makeGhost( 1, -1,  0, particles)
-    # ghostCells += makeGhost(-1,  0,  0, particles)
-    # ghostCells += makeGhost( 1,  0,  0, particles)
-    # ghostCells += makeGhost(-1,  1,  0, particles)
-    # ghostCells += makeGhost( 0,  1,  0, particles)
-    # ghostCells += makeGhost( 1,  1,  0, particles)
-
-    # ghostCells += makeGhost(-1, -1,  1, particles)
-    # ghostCells += makeGhost( 0, -1,  1, particles)
-    # ghostCells += makeGhost( 1, -1,  1, particles)
-    # ghostCells += makeGhost(-1,  0,  1, particles)
-    # ghostCells += makeGhost( 0,  0,  1, particles)
-    # ghostCells += makeGhost( 1,  0,  1, particles)
-    # ghostCells += makeGhost(-1,  1,  1, particles)
-    # ghostCells += makeGhost( 0,  1,  1, particles)
-    # ghostCells += makeGhost( 1,  1,  1, particles)
-    
     N = len(particles)
-
-    # plot(particles)
-
-    LJP = sum([getLJP(p1, p2) for p1 in particles for p2 in particles])
-    LJP += sum([getLJP(p, gp) for gp in ghostCells for p in particles])
-
-    nudgeCount = 0
-    monteCarloCycle = 0
     oldLJP = 1
     while True:
         # if nudgeCount == 1: break
-        # logic for breaking out of cycle
-        if monteCarloCycle > 4000: break
+        if monteCarloCycle > 20000: break
         if monteCarloCycle % 1000 == 0:
             print(f"{monteCarloCycle//1000} LJP: {LJP}")
+            archive[f"{monteCarloCycle//1000}"] = {
+                "n": n,
+                "dimension": 3,
+                "dlessTemp": dlessTemp,
+                "cycleCount": monteCarloCycle,
+                "nudgeCount": nudgeCount,
+                "LJP": LJP,
+                "plist": particles,
+                "ghost": ghostCells
+            }
             if abs((oldLJP - LJP)/oldLJP) < 1e-3: break
             oldLJP = LJP
 
@@ -186,15 +169,6 @@ def monteCarloSim(n):
         for i in range(26):
             ghostCells[i*N].pos = newLocation.add(adjustedVectors[i])
 
-        # ghostCells[0*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), -2*(n+1), 0))
-        # ghostCells[1*N + randIndex].pos = newLocation.add(Vector(-0*(n+1), -2*(n+1), 0))
-        # ghostCells[2*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), -2*(n+1), 0))
-        # ghostCells[3*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), -0*(n+1), 0))
-        # ghostCells[4*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), +0*(n+1), 0))
-        # ghostCells[5*N + randIndex].pos = newLocation.add(Vector(-2*(n+1), +2*(n+1), 0))
-        # ghostCells[6*N + randIndex].pos = newLocation.add(Vector(+0*(n+1), +2*(n+1), 0))
-        # ghostCells[7*N + randIndex].pos = newLocation.add(Vector(+2*(n+1), +2*(n+1), 0))
-
         # check that energy state is conserved
         LJP += (newPotential - oldPotential)
 
@@ -214,20 +188,39 @@ def g(plist, r):
         print(inRange)
         break
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+def plot(plist):
+    x = [p.pos.x for p in plist]
+    y = [p.pos.y for p in plist]
+    z = [p.pos.z for p in plist]
+    ax.scatter(x, y, z, alpha=0.7)
+    return ax
 
-one = monteCarloSim(2)
-g(one, 2)
-plot(one)
-plt.show()
+def update(i):
+    return plot(archive[f"{i}"]['plist'])
 
-#tricky to model 3d of points, just because we're not used to it;; maybe use
-#p5js or something for some rotation to see the points from rotated perpsecitves
 
-##################
+if __name__ == '__main__':
+    archive = shelve.open("mcSimulation")
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-# p1 = Particle(1, 1)
-# p2 = Particle(0, 0)
-# print(p1.pos.distanceTo(p2.pos).getMagnitude())
-# print(getLJP(p1, p2))
+    # one = monteCarloSim(2, archive['10'])
+    # g(one, 2)
+    plot(archive['0']['plist'])
+    # plot(archive['1']['plist'])
+    # plot(archive['2']['plist'])
+    # plot(archive['3']['plist'])
+    plot(archive['4']['plist'])
+    # plot(archive['5']['plist'])
+    # plot(archive['6']['plist'])
+    # plot(archive['7']['plist'])
+    plot(archive['8']['plist'])
+    # plot(archive['9']['plist'])
+    # plot(archive['10']['plist'])
+    plot(archive['12']['plist'])
+    # plot(archive['20']['plist'])
+    plt.show()
+    archive.close()
+
+    #tricky to model 3d of points, just because we're not used to it;; maybe use
+    #p5js or something for some rotation to see the points from rotated perpsecitves

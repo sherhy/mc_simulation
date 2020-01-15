@@ -1,70 +1,16 @@
 #!/usr/bin/env python
 import shelve
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, HTMLWriter
-from mpl_toolkits.mplot3d import Axes3D
 from random import random, seed
-from math import sqrt, log, exp
+from vector import Vector, randomVector
+from particle import Particle
 
 # initial conditions
 seed('mc')
-
-class Vector:
-    def __init__(self, _x, _y, _z):
-        self.x = _x
-        self.y = _y
-        self.z = _z
-
-    def add(self, v):
-        self.x += v.x
-        self.y += v.y
-        self.z += v.z
-        return self
-
-    def __str__(self):
-        return f"x: {self.x} y:{self.y}"
-
-    def distanceTo(self, p2):
-        # return sqrt((self.y - p2.y)**2 + (self.x - p2.x)**2)
-        return Vector(self.x - p2.x, self.y - p2.y, self.z - p2.z)
-
-    def getMagnitude(self):
-        return sqrt(self.x**2 + self.y**2 + self.z**2)
-
-class Particle:
-    border = 0
-
-    def __init__(self, _x, _y, _z, _name=""):
-        self.pos = Vector(_x, _y, _z)
-        self.name = _name
-
-    def checkLimits(self):
-        if self.pos.x  < -Particle.border: 
-            self.pos.x += Particle.border * 2
-        elif self.pos.x > Particle.border: 
-            self.pos.x -= Particle.border * 2
-
-        if self.pos.y  < -Particle.border: 
-            self.pos.y += Particle.border * 2
-        elif self.pos.y > Particle.border: 
-            self.pos.y -= Particle.border * 2
-
-        if self.pos.z  < -Particle.border: 
-            self.pos.z += Particle.border * 2
-        elif self.pos.z > Particle.border: 
-            self.pos.z -= Particle.border * 2
 
 def getLJP(p1, p2):
     r = p1.pos.distanceTo(p2.pos).getMagnitude()
     if r == 0 or r > 8: return 0
     return 4*((1 / r)**12 - (1 / r)**6)
-
-def rand(n=1): 
-    return (random()-.5)*n
-
-def randomVector(factor=1): 
-    return Vector(rand(factor), rand(factor), rand(factor))
 
 def makeGhost(x, y, z, plist):
     boundary = 2*(Particle.border)
@@ -73,8 +19,7 @@ def makeGhost(x, y, z, plist):
         p.pos.y + y * boundary, 
         p.pos.z + z * boundary) for p in plist]
 
-
-def monteCarloSim(n, shelved = False):
+def monteCarloSim(n=2, shelved=False, stopAt=10000):
     if not shelved:
         dlessTemp = 2.74
         Particle.border = n + 1
@@ -110,9 +55,9 @@ def monteCarloSim(n, shelved = False):
     while True:
         # if nudgeCount == 1: break
         if monteCarloCycle % 1000 == 0:
-            if monteCarloCycle > 30000: break
+            if monteCarloCycle > stopAt: break
             print(f"{monteCarloCycle//1000} LJP: {LJP}")
-            archive[f"{monteCarloCycle//1000}"] = {
+            db[f"{monteCarloCycle//1000}"] = {
                 "n": n,
                 "dimension": 3,
                 "dlessTemp": dlessTemp,
@@ -176,43 +121,10 @@ def monteCarloSim(n, shelved = False):
         {int(nudgeCount/monteCarloCycle * 100)}% out of {monteCarloCycle}")
     return particles
     
-def g(plist, r):
-    dr = 0.2
-    for p in plist:
-        distances = list(map(lambda point: 
-            point.pos.distanceTo(p.pos).getMagnitude(), plist))
-        inRange = list(filter(lambda length: length - r < dr, distances))
-        inRange.remove(0) #remove the count for itself
-
-
-        print(inRange)
-        break
-
-def plot(plist):
-    ax.clear()
-    x = [p.pos.x for p in plist]
-    y = [p.pos.y for p in plist]
-    z = [p.pos.z for p in plist]
-    ax.scatter(x, y, z, alpha=0.7)
-    return ax
-
-def update(i):
-    return plot(archive[f"{i}"]['plist'])
-
 
 if __name__ == '__main__':
-    archive = shelve.open("mcSimulation")
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    db = shelve.open("mcSimulation")
+    
+    monteCarloSim(shelved=db['30'], stopAt=30001)
 
-
-    # plot(monteCarloSim(2, archive['20']))
-    # g(one, 2)
-
-    anim = FuncAnimation(fig, update, frames=np.arange(0,30), interval=170)
-    # plt.show()
-    anim.save('./30cycles.gif', writer='imagemagick')
-    archive.close()
-
-    #tricky to model 3d of points, just because we're not used to it;; maybe use
-    #p5js or something for some rotation to see the points from rotated perpsecitves
+    db.close()

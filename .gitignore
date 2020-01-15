@@ -1,10 +1,5 @@
+bin/
 .DS_Store
-Lecture_5_Micoulaut_Atomistics_Glass_Course.pdf
 __pycache__/
 env/
-helper/
-interim report/
-miller_rabin.py
-seems_to_work.py
-test.py
-Review on Computational Modelling.pdf
+outline.md

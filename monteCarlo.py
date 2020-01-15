@@ -2,7 +2,7 @@
 import shelve
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, HTMLWriter
 from mpl_toolkits.mplot3d import Axes3D
 from random import random, seed
 from math import sqrt, log, exp
@@ -109,8 +109,8 @@ def monteCarloSim(n, shelved = False):
     oldLJP = 1
     while True:
         # if nudgeCount == 1: break
-        if monteCarloCycle > 20000: break
         if monteCarloCycle % 1000 == 0:
+            if monteCarloCycle > 30000: break
             print(f"{monteCarloCycle//1000} LJP: {LJP}")
             archive[f"{monteCarloCycle//1000}"] = {
                 "n": n,
@@ -189,6 +189,7 @@ def g(plist, r):
         break
 
 def plot(plist):
+    ax.clear()
     x = [p.pos.x for p in plist]
     y = [p.pos.y for p in plist]
     z = [p.pos.z for p in plist]
@@ -204,22 +205,13 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    # one = monteCarloSim(2, archive['10'])
+
+    # plot(monteCarloSim(2, archive['20']))
     # g(one, 2)
-    plot(archive['0']['plist'])
-    # plot(archive['1']['plist'])
-    # plot(archive['2']['plist'])
-    # plot(archive['3']['plist'])
-    plot(archive['4']['plist'])
-    # plot(archive['5']['plist'])
-    # plot(archive['6']['plist'])
-    # plot(archive['7']['plist'])
-    plot(archive['8']['plist'])
-    # plot(archive['9']['plist'])
-    # plot(archive['10']['plist'])
-    plot(archive['12']['plist'])
-    # plot(archive['20']['plist'])
-    plt.show()
+
+    anim = FuncAnimation(fig, update, frames=np.arange(0,30), interval=170)
+    # plt.show()
+    anim.save('./30cycles.gif', writer='imagemagick')
     archive.close()
 
     #tricky to model 3d of points, just because we're not used to it;; maybe use

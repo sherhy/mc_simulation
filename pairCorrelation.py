@@ -3,14 +3,7 @@ from math import pi
 
 from numpy import arange
 
-from plotter import scatter_plot, poly_approx
-
-
-def g(n, distances, r):
-    dr = 0.1
-    in_range = list(filter(lambda length: abs(length - r) < dr, distances))
-    count = len(in_range)
-    return count / (n * 4 * pi * r ** 2 * dr)
+from plotter import scatter_plot
 
 
 def get_all_distances(df):
@@ -18,16 +11,22 @@ def get_all_distances(df):
     g_list = df['ghost']
     distances = list()
     for p in p_list:
-        distances += list(map(lambda point: point.pos.get_distance_to(p.pos), p_list + g_list))
+        distances += list(map(lambda point: p.pos.get_distance_to(point.pos), p_list + g_list))
     return distances
 
 
-def calculate_pair_correlation(df, rdd, cycle: str):
+def g(n, distances, r):
+    dr = 0.1
+    in_range_count = len(list(filter(lambda length: abs(length - r) < dr, distances)))
+    return in_range_count / (n * 4 * pi * r ** 2 * dr)
+
+
+def calculate_pair_correlation(mc, rdd, name):
     g_values = list()
     r_values = list()
-    distances = get_all_distances(df[cycle])
-    rdd[cycle + "_all_dist"] = distances
-    n = df[cycle]['n']
+    distances = get_all_distances(mc[name])
+    rdd[name + "_all_dist"] = distances.copy()
+    n = mc[name]['n']
 
     for r in arange(0.4, 0.8, 0.05):
         g_val = g(n, distances, r)
@@ -44,20 +43,17 @@ def calculate_pair_correlation(df, rdd, cycle: str):
         g_values.append(g_val)
         r_values.append(r)
 
-    rdd[cycle + "_g"] = g_values
-    rdd[cycle + "_r"] = r_values
+    rdd[name + "_g"] = g_values
+    rdd[name + "_r"] = r_values
 
 
 if __name__ == '__main__':
-    db = shelve.open("mcSimulation")
-    radial_dist = shelve.open("radialDistribution")
+    with shelve.open("mc") as db:
+        with shelve.open("rdd") as radial_dist:
+            reduced_volume = "1.73"
+            cycle_count = "10"
+            db_name = reduced_volume + "_" + cycle_count
 
-    calculate_pair_correlation(db, radial_dist, '18')
+            calculate_pair_correlation(db, radial_dist, db_name)
+            scatter_plot(radial_dist[f'{db_name}_r'], radial_dist[f'{db_name}_g'], f"g(r)-{db_name}")
 
-    cycle_count = 18
-    # not necessary for calculation
-    scatter_plot(radial_dist[f'{cycle_count}_r'], radial_dist[f'{cycle_count}_g'], f"g(r)-{cycle_count}")
-    # poly_approx(r_values, g_values, f"g(r)-{cycle}-poly")
-
-    db.close()
-    radial_dist.close()

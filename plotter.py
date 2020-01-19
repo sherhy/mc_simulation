@@ -6,8 +6,6 @@ from matplotlib.animation import FuncAnimation
 
 # does not call it but is necessary
 from mpl_toolkits.mplot3d import Axes3D
-from particle import Particle
-from vector import Vector
 
 
 def scatter_plot(x, y, name):
@@ -15,7 +13,7 @@ def scatter_plot(x, y, name):
     plt.savefig(f"./output/{name}.png")
 
 
-def animate(shelve_db, max_cycle):
+def animate(shelve_db, reduced_volume:str, max_cycle):
     def plot(plist):
         ax.clear()
         x = [p.pos.x for p in plist]
@@ -26,8 +24,12 @@ def animate(shelve_db, max_cycle):
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    filename = f"{max_cycle}cycles.gif"
-    anim = FuncAnimation(fig, lambda i: plot(shelve_db[f"{i}"]['plist']), frames=np.arange(0, max_cycle), interval=170)
+    filename = f"{reduced_volume}_{max_cycle}.gif"
+    anim = FuncAnimation(
+        fig,
+        lambda i: plot(shelve_db[f"{reduced_volume}_{i}"]['plist']),
+        frames=np.arange(0, max_cycle),
+        interval=170)
     anim.save(f"./output/{filename}", writer='imagemagick')
 
 

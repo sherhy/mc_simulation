@@ -31,10 +31,16 @@ def animate(shelve_db, max_cycle):
     anim.save(f"./output/{filename}", writer='imagemagick')
 
 
+def poly_approx(xs, ys, name, deg=14):
+    poly_fit = np.polyfit(xs, ys, deg)
+    poly_fnc = np.poly1d(poly_fit)
+    plt.plot(xs, poly_fnc(xs))
+    plt.savefig(f"./output/{name}.png")
+
+
 if __name__ == '__main__':
     db = shelve.open("mcSimulation")
 
-    # change here
-    animate()
+    # animate()
 
     db.close()

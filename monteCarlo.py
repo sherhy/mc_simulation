@@ -5,10 +5,6 @@ from random import random, seed
 
 from particle import Particle
 from vector import Vector
-from plotter import animate
-
-# initial conditions
-seed('mc')
 
 
 def random_vector(factor=1):
@@ -19,7 +15,7 @@ def random_vector(factor=1):
 
 
 def get_ljp(p1, p2):
-    r = p1.pos.get_distance_to(p2.pos).get_magnitude()
+    r = p1.pos.get_distance_to(p2.pos)
     if r == 0 or r > 8:
         return 0
     return 4 * ((1 / r) ** 12 - (1 / r) ** 6)
@@ -33,21 +29,24 @@ def create_ghost(x, y, z, plist):
         p.pos.z + z * boundary) for p in plist]
 
 
-def run_monte_carlo(n=2, shelved: dict = False, stop_at=10000):
+def run_monte_carlo(n=2, border_margin=1, kt=2.74, shelved: dict = False, stop_at=20):
     if shelved:
         n = shelved["n"]
-        Particle.border = n + 1
+        Particle.border = shelved["border"]
         dless_temp = shelved["dlessTemp"]
         nudge_count = shelved["nudgeCount"]
         monte_carlo_cycle = shelved["cycleCount"]
         particles = shelved["plist"]
         ghost_cells = shelved["ghost"]
         total_ljp = shelved["LJP"]
+
+        ljp_historical = [db[f"{i}"]["LJP"] for i in range(int(monte_carlo_cycle) // 1000)]
     else:
-        dless_temp = 2.74
+        dless_temp = kt
         nudge_count = 0
         monte_carlo_cycle = 0
-        Particle.border = n + 1
+        Particle.border = n + border_margin
+        ljp_historical = list()
 
         particles = [Particle(i, j, k, f"{i}{j}{k}")
                      for i in range(-n, n + 1)
@@ -66,27 +65,28 @@ def run_monte_carlo(n=2, shelved: dict = False, stop_at=10000):
         total_ljp += sum([get_ljp(p, gp) for gp in ghost_cells for p in particles])
 
     Particle.n = len(particles)
+    Particle.density = (Particle.n / Particle.border)**3
     old_total_ljp = 1
     while True:
         # if nudge_count == 1: break
         if monte_carlo_cycle % 1000 == 0:
             print(f"{monte_carlo_cycle // 1000} LJP: {total_ljp}")
-            db[f"{monte_carlo_cycle // 1000}"] = {
+            db[f"{Particle.density:.3}_{monte_carlo_cycle//1000}"] = {
                 "n": n,
+                "border": Particle.border,
                 "dimension": 3,
                 "dlessTemp": dless_temp,
                 "cycleCount": monte_carlo_cycle,
                 "nudgeCount": nudge_count,
                 "LJP": total_ljp,
                 "plist": particles,
-                "ghost": ghost_cells
+                "ghost": ghost_cells,
             }
             if monte_carlo_cycle // 1000 >= stop_at:
                 break
-            if abs((old_total_ljp - total_ljp) / old_total_ljp) < 1e-3:
+            if abs((old_total_ljp - total_ljp) / old_total_ljp) < 3e-3:
                 break
-            if int(nudge_count / monte_carlo_cycle * 100) < 5:
-                break
+            ljp_historical.append(total_ljp)
             old_total_ljp = total_ljp
 
         monte_carlo_cycle += 1
@@ -109,10 +109,6 @@ def run_monte_carlo(n=2, shelved: dict = False, stop_at=10000):
         particles_copy = particles.copy()
         particles_copy.pop(rand_index)  # ljp explodes where r << 1
         new_potential = sum([get_ljp(new_particle, p) for p in particles_copy])
-        new_pot = [get_ljp(new_particle, p) for p in particles_copy]
-        gst_pot = [get_ljp(new_particle, gp) for gp in ghost_cells]
-        max_pot = max(new_pot)
-        max_gst = max(gst_pot)
         new_potential += sum([get_ljp(new_particle, gp) for gp in ghost_cells])
 
         # move individual atoms according to LJ potential
@@ -140,17 +136,16 @@ def run_monte_carlo(n=2, shelved: dict = False, stop_at=10000):
         total_ljp += (new_potential - old_potential)
 
     print(f"nudge ratio: {int(nudge_count / monte_carlo_cycle * 100)}% out of {monte_carlo_cycle}")
-    return particles
+    return monte_carlo_cycle // 1000
 
 
 if __name__ == '__main__':
+    seed('mc')
     db = shelve.open("mcSimulation")
 
     # change two parameters
-    _from = 9
-    _until = _from + 1
-    # run_monte_carlo(stop_at=_until)
+    # _from = 0
+    run_monte_carlo(n=1, kt=2.74, border_margin=2)
     # run_monte_carlo(shelved=db[f"{_from}"], stop_at=_until)
-    animate(db, _until)
 
     db.close()

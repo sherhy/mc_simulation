@@ -17,7 +17,4 @@ class Vector:
         return f"x: {self.x} y:{self.y}"
 
     def get_distance_to(self, p2):
-        return Vector(self.x - p2.x, self.y - p2.y, self.z - p2.z)
-
-    def get_magnitude(self):
-        return sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
+        return sqrt((self.x - p2.x)**2 + (self.y - p2.y)**2 + (self.z - p2.z)**2)

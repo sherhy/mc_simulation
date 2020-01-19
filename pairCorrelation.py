@@ -3,40 +3,61 @@ from math import pi
 
 from numpy import arange
 
-from plotter import scatter_plot
+from plotter import scatter_plot, poly_approx
 
 
-def g(df, r):
+def g(n, distances, r):
     dr = 0.1
+    in_range = list(filter(lambda length: abs(length - r) < dr, distances))
+    count = len(in_range)
+    return count / (n * 4 * pi * r ** 2 * dr)
+
+
+def get_all_distances(df):
     p_list = df['plist']
     g_list = df['ghost']
-    n = len(p_list)
-    count = 0
+    distances = list()
     for p in p_list:
-        distances = list(map(lambda point: point.pos.get_distance_to(p.pos).get_magnitude(), p_list + g_list))
-        in_range = list(filter(lambda length: abs(length - r) < dr, distances))
+        distances += list(map(lambda point: point.pos.get_distance_to(p.pos), p_list + g_list))
+    return distances
 
-        count += len(in_range)
-    return count / (n * 4 * pi * r ** 2 * dr)
+
+def calculate_pair_correlation(df, rdd, cycle: str):
+    g_values = list()
+    r_values = list()
+    distances = get_all_distances(df[cycle])
+    rdd[cycle + "_all_dist"] = distances
+    n = df[cycle]['n']
+
+    for r in arange(0.4, 0.8, 0.05):
+        g_val = g(n, distances, r)
+        g_values.append(g_val)
+        r_values.append(r)
+
+    for r in arange(0.8, 1.3, 0.01):
+        g_val = g(n, distances, r)
+        g_values.append(g_val)
+        r_values.append(r)
+
+    for r in arange(1.3, 5, 0.05):
+        g_val = g(n, distances, r)
+        g_values.append(g_val)
+        r_values.append(r)
+
+    rdd[cycle + "_g"] = g_values
+    rdd[cycle + "_r"] = r_values
 
 
 if __name__ == '__main__':
     db = shelve.open("mcSimulation")
-    rdd = shelve.open("radialDistribution")
+    radial_dist = shelve.open("radialDistribution")
 
-    g_values = list()
-    x_values = arange(0.25, 5, 0.05)
+    calculate_pair_correlation(db, radial_dist, '18')
 
-    # change here
-    cycle = '10'
-    for x in x_values:
-        g_val = g(db[cycle], x)
-        if x.is_integer():
-            print(f"r={x} ")
-        g_values.append(g_val)
-    rdd[cycle] = g_values
-
-    scatter_plot(x_values, g_values, f"g(r)-{cycle}")
+    cycle_count = 18
+    # not necessary for calculation
+    scatter_plot(radial_dist[f'{cycle_count}_r'], radial_dist[f'{cycle_count}_g'], f"g(r)-{cycle_count}")
+    # poly_approx(r_values, g_values, f"g(r)-{cycle}-poly")
 
     db.close()
-    rdd.close()
+    radial_dist.close()

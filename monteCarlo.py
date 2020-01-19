@@ -67,7 +67,7 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10, dont_
 
     min_run = 4
     Particle.n = len(particles)
-    Particle.reduced_volume = (2 * Particle.border)**3 / Particle.n
+    Particle.reduced_volume = (2 * Particle.border) ** 3 / Particle.n
     old_total_ljp = 1
     while True:
         # if nudge_count == 1: break

@@ -17,4 +17,4 @@ class Vector:
         return f"x: {self.x} y:{self.y}"
 
     def get_distance_to(self, p2):
-        return sqrt((self.x - p2.x)**2 + (self.y - p2.y)**2 + (self.z - p2.z)**2)
+        return sqrt((self.x - p2.x) ** 2 + (self.y - p2.y) ** 2 + (self.z - p2.z) ** 2)

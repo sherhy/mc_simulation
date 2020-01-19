@@ -9,7 +9,7 @@ from pressure import calculate_pressure
 
 def main():
     seed('mc')
-    particle_counts = [100, 125]
+    particle_counts = [100]
     temps = [1, 2, 2.74, 5, 10]
 
     for n in particle_counts:

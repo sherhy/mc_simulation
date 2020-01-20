@@ -30,68 +30,59 @@ def create_ghost(x, y, z, plist):
         p.pos.z + z * boundary) for p in plist]
 
 
-def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10):
-    if shelved:
-        n = shelved["n"]
-        Particle.border = shelved["border"]
-        dless_temp = shelved["dlessTemp"]
-        nudge_count = shelved["nudgeCount"]
-        monte_carlo_cycle = shelved["cycleCount"]
-        particles = shelved["plist"]
-        ghost_cells = shelved["ghost"]
-        total_ljp = shelved["LJP"]
-    else:
-        dless_temp = kt
-        nudge_count = 0
-        monte_carlo_cycle = 0
+def run_monte_carlo(db, n=125, kt=2.74, stop_at=10):
+    dless_temp = kt
+    nudge_count = 0
+    monte_carlo_cycle = 0
 
-        particles = [Particle(i, j, k) for i in range(-2, 3) for j in range(-2, 3) for k in range(-2, 3)]
-        if 125 < n:
-            for _ in range(abs(n - 125)):
-                particles.append(Particle(rand(4), rand(4), rand(4)))
-        elif 125 > n:
-            for _ in range(abs(n - 125)):
-                rand_index = int(random() * len(particles))
-                particles.pop(rand_index)
+    particles = [Particle(i, j, k) for i in range(-2, 3) for j in range(-2, 3) for k in range(-2, 3)]
+    if 125 < n:
+        for _ in range(abs(n - 125)):
+            particles.append(Particle(rand(4), rand(4), rand(4)))
+    elif 125 > n:
+        for _ in range(abs(n - 125)):
+            rand_index = int(random() * len(particles))
+            particles.pop(rand_index)
 
-        ghost_cells = list()
-        for k in range(-1, 2):
-            for j in range(-1, 2):
-                for i in range(-1, 2):
-                    if i == 0 and j == 0 and k == 0:
-                        continue
-                    ghost_cells += create_ghost(i, j, k, particles)
+    ghost_cells = list()
+    for k in range(-1, 2):
+        for j in range(-1, 2):
+            for i in range(-1, 2):
+                if i == 0 and j == 0 and k == 0:
+                    continue
+                ghost_cells += create_ghost(i, j, k, particles)
 
-        total_ljp = sum([get_ljp(p1, p2) for p1 in particles for p2 in particles])
-        total_ljp += sum([get_ljp(p, gp) for gp in ghost_cells for p in particles])
+    total_ljp = sum([get_ljp(p1, p2) for p1 in particles for p2 in particles])
+    total_ljp += sum([get_ljp(p, gp) for gp in ghost_cells for p in particles])
 
     min_run = 6
     Particle.n = len(particles)
     Particle.reduced_volume = (2 * Particle.border) ** 3 / Particle.n
     old_total_ljp = 1
+    ljp_historical = list()
     while True:
         # if nudge_count == 1: break
         if monte_carlo_cycle % 1000 == 0:
             cycle = monte_carlo_cycle // 1000
             print(f"{Particle.reduced_volume:.2f}_{cycle} LJP: {total_ljp}")
-            db[f"{Particle.reduced_volume:.2f}_{cycle}"] = {
-                "n": n,
-                "border": Particle.border,
-                "dimension": 3,
-                "dlessTemp": dless_temp,
-                "cycleCount": monte_carlo_cycle,
-                "nudgeCount": nudge_count,
-                "LJP": total_ljp,
-                "plist": particles,
-                "ghost": ghost_cells,
-            }
-            with shelve.open("./db/cycles") as cycles:
+            ljp_historical.append(total_ljp)
+            with shelve.open(f"./db/cycles_{kt}") as cycles:
                 cycles[f"{Particle.reduced_volume:.2f}"] = cycle
             if cycle <= min_run:
                 pass
-            elif cycle >= stop_at:
-                break
-            elif abs((old_total_ljp - total_ljp) / old_total_ljp) < 1e-3:
+            elif cycle >= stop_at or abs((old_total_ljp - total_ljp) / old_total_ljp) < 1e-3:
+                db[f"{Particle.reduced_volume:.2f}_{cycle}"] = {
+                    "n": n,
+                    "border": Particle.border,
+                    "dimension": 3,
+                    "dlessTemp": dless_temp,
+                    "cycleCount": monte_carlo_cycle,
+                    "nudgeCount": nudge_count,
+                    "LJP": total_ljp,
+                    "plist": particles,
+                    "ghost": ghost_cells,
+                    "historical": ljp_historical
+                }
                 break
             old_total_ljp = total_ljp
 
@@ -142,9 +133,9 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10):
 
 
 if __name__ == '__main__':
-
-    with shelve.open("./db/mc") as mc:
+    pass
+    # with shelve.open("./db/mc") as mc:
         # change two parameters
         # _from = 0
         # run_monte_carlo(mc, n=125, kt=2.74)
-        run_monte_carlo(mc, shelved=mc['1.73_10'], stop_at=20)
+        # run_monte_carlo(mc, shelved=mc['1.73_10'], stop_at=20)

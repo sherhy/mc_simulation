@@ -47,12 +47,13 @@ def calculate_pair_correlation(mc, rdd, name):
 
 
 if __name__ == '__main__':
-    with shelve.open("./db/mc") as db:
-        with shelve.open("./db/rdd") as radial_dist:
-            reduced_volume = "1.73"
-            cycle_count = "10"
-            db_name = reduced_volume + "_" + cycle_count
-
-            calculate_pair_correlation(db, radial_dist, db_name)
-            plot_pair_correlation(radial_dist[f'{db_name}_r'], radial_dist[f'{db_name}_g'], f"g(r)-{db_name}")
+    pass
+    # with shelve.open("./db/mc") as db:
+    #     with shelve.open("./db/rdd") as radial_dist:
+    #         reduced_volume = "1.73"
+    #         cycle_count = "10"
+    #         db_name = reduced_volume + "_" + cycle_count
+    #
+    #         calculate_pair_correlation(db, radial_dist, db_name)
+    #         plot_pair_correlation(radial_dist[f'{db_name}_r'], radial_dist[f'{db_name}_g'], f"g(r)-{db_name}")
 

@@ -3,6 +3,8 @@ import shelve
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+import numpy.polynomial.polynomial as poly
+
 
 # does not call it but is necessary
 from mpl_toolkits.mplot3d import Axes3D
@@ -26,19 +28,25 @@ def plot_pair_correlation(x, y, name):
     plt.savefig(f"./output/{name}.png")
 
 
-def plot_van_der_waals(x, y, name):
+def clear_plt():
+    plt.clf()
+
+
+def scatter_van_der_waals(x, y, name):
     font = {
         'family': 'serif',
         'color': 'darkred',
         'weight': 'normal',
-        'size': 16
+        'size': 12
     }
-    plt.clf()
     plt.scatter(x, y)
 
     plt.title(name, fontdict=font)
-    plt.xlabel('Volume', fontdict=font)
-    plt.ylabel('Pressure', fontdict=font)
+    plt.xlabel('v = reduced volume', fontdict=font)
+    plt.ylabel('p = reduced pressure', fontdict=font)
+
+    plt.xlim(0.8, 1.3)
+    plt.ylim(0, int(y[0])+1)
 
     plt.savefig(f"./output/{name}.png")
 
@@ -63,13 +71,16 @@ def animate(shelve_db, reduced_volume: str, max_cycle):
     anim.save(f"./output/{filename}", writer='imagemagick')
 
 
-def poly_approx(xs, ys, name, deg=14):
-    poly_fit = np.polyfit(xs, ys, deg)
-    poly_fnc = np.poly1d(poly_fit)
-    plt.plot(xs, poly_fnc(xs))
-    plt.savefig(f"./output/{name}.png")
+def poly_approx(xs, ys, deg=4):
+    # poly_fit = np.polyfit(xs, ys, deg)
+    # poly_fnc = np.poly1d(poly_fit)
+    coefs = poly.polyfit(xs, ys, deg)
+    x = np.arange(0.85, 1.2, 0.01)
+    ffit = poly.Polynomial(coefs)
+    plt.plot(x, ffit(x))
 
 
 if __name__ == '__main__':
-    with shelve.open('./db/mc'):
-        animate()
+    pass
+    # with shelve.open('./db/mc'):
+    #     animate()

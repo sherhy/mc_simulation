@@ -1,8 +1,6 @@
 import math
 import shelve
 
-from numpy import arange
-
 
 def calculate_pressure(mc, rdd, name):
     def ljp(r):
@@ -10,6 +8,8 @@ def calculate_pressure(mc, rdd, name):
 
     rho = mc[name]['n'] / (int(mc[name]['border']) * 2) ** 3
     kt = mc[name]['dlessTemp']
+    sigma = 1
+    r_cutoff = 5
 
     gs = rdd[name + "_g"]
     rs = rdd[name + "_r"]
@@ -17,15 +17,19 @@ def calculate_pressure(mc, rdd, name):
 
     integral = sum([rs[i] ** 3 * ljp(rs[i]) * gs[i] for i in range(0, len(rs) - 1)])
 
-    res = rho * kt - math.pi * (2 / 3) * rho ** 2 * integral
-    print(res)
-    return res
+    pressure = rho * kt - math.pi * (2 / 3) * rho ** 2 * integral
+    constant_coefficient = (16 / 9) * math.pi * rho ** 2 * sigma ** 3
+    analytic_pressure = constant_coefficient * (2 * (sigma / r_cutoff) ** 9 - 3 * (sigma / r_cutoff) ** 3)
+    pressure += analytic_pressure
+
+    print(pressure)
+    return pressure
 
 
 if __name__ == "__main__":
     df = shelve.open('mc')
     rad_cor = shelve.open('rdd')
-    vdw = shelve.open('vanDerWaals')
+    vdw = shelve.open('vdw')
 
     df.close()
     rad_cor.close()

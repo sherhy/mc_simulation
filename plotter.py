@@ -8,12 +8,42 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def scatter_plot(x, y, name):
+def plot_pair_correlation(x, y, name):
+    font = {
+        'family': 'serif',
+        'color': 'darkred',
+        'weight': 'normal',
+        'size': 16
+    }
+    plt.clf()
     plt.scatter(x, y)
+    plt.xlim(0, 5)
+
+    plt.title(name, fontdict=font)
+    plt.xlabel('r', fontdict=font)
+    plt.ylabel('g(r)', fontdict=font)
+
     plt.savefig(f"./output/{name}.png")
 
 
-def animate(shelve_db, reduced_volume:str, max_cycle):
+def plot_van_der_waals(x, y, name):
+    font = {
+        'family': 'serif',
+        'color': 'darkred',
+        'weight': 'normal',
+        'size': 16
+    }
+    plt.clf()
+    plt.scatter(x, y)
+
+    plt.title(name, fontdict=font)
+    plt.xlabel('Volume', fontdict=font)
+    plt.ylabel('Pressure', fontdict=font)
+
+    plt.savefig(f"./output/{name}.png")
+
+
+def animate(shelve_db, reduced_volume: str, max_cycle):
     def plot(plist):
         ax.clear()
         x = [p.pos.x for p in plist]

@@ -3,7 +3,7 @@ from math import pi
 
 from numpy import arange
 
-from plotter import scatter_plot
+from plotter import plot_pair_correlation
 
 
 def get_all_distances(df):
@@ -18,7 +18,7 @@ def get_all_distances(df):
 def g(n, distances, r):
     dr = 0.1
     in_range_count = len(list(filter(lambda length: abs(length - r) < dr, distances)))
-    return in_range_count / (n * 4 * pi * r ** 2 * dr)
+    return 110 * in_range_count / (n ** 2 * 4 * pi * r ** 2 * dr)
 
 
 def calculate_pair_correlation(mc, rdd, name):
@@ -55,5 +55,5 @@ if __name__ == '__main__':
             db_name = reduced_volume + "_" + cycle_count
 
             calculate_pair_correlation(db, radial_dist, db_name)
-            scatter_plot(radial_dist[f'{db_name}_r'], radial_dist[f'{db_name}_g'], f"g(r)-{db_name}")
+            plot_pair_correlation(radial_dist[f'{db_name}_r'], radial_dist[f'{db_name}_g'], f"g(r)-{db_name}")
 

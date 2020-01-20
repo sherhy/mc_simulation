@@ -30,7 +30,7 @@ def create_ghost(x, y, z, plist):
         p.pos.z + z * boundary) for p in plist]
 
 
-def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10, dont_stop=False):
+def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10):
     if shelved:
         n = shelved["n"]
         Particle.border = shelved["border"]
@@ -48,7 +48,7 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10, dont_
         particles = [Particle(i, j, k) for i in range(-2, 3) for j in range(-2, 3) for k in range(-2, 3)]
         if 125 < n:
             for _ in range(abs(n - 125)):
-                particles.append(Particle(rand(2), rand(2), rand(2)))
+                particles.append(Particle(rand(4), rand(4), rand(4)))
         elif 125 > n:
             for _ in range(abs(n - 125)):
                 rand_index = int(random() * len(particles))
@@ -65,7 +65,7 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10, dont_
         total_ljp = sum([get_ljp(p1, p2) for p1 in particles for p2 in particles])
         total_ljp += sum([get_ljp(p, gp) for gp in ghost_cells for p in particles])
 
-    min_run = 4
+    min_run = 6
     Particle.n = len(particles)
     Particle.reduced_volume = (2 * Particle.border) ** 3 / Particle.n
     old_total_ljp = 1
@@ -86,10 +86,10 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10, dont_
                 "ghost": ghost_cells,
             }
             db[f"{Particle.reduced_volume:.2f}"] = cycle
-            if cycle >= stop_at:
-                break
-            elif cycle <= min_run or dont_stop:
+            if cycle <= min_run:
                 pass
+            elif cycle >= stop_at:
+                break
             elif abs((old_total_ljp - total_ljp) / old_total_ljp) < 1e-3:
                 break
             old_total_ljp = total_ljp

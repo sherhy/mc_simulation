@@ -18,14 +18,13 @@ def get_all_distances(df):
 def g(n, distances, r):
     dr = 0.1
     in_range_count = len(list(filter(lambda length: abs(length - r) < dr, distances)))
-    return 110 * in_range_count / (n ** 2 * 4 * pi * r ** 2 * dr)
+    return 111 * in_range_count / (n * n * 4 * pi * r * r * dr)  # magic multiplier (111/n)
 
 
 def calculate_pair_correlation(mc, rdd, name):
     g_values = list()
     r_values = list()
     distances = get_all_distances(mc[name])
-    rdd[name + "_all_dist"] = distances.copy()
     n = mc[name]['n']
 
     for r in arange(0.4, 0.8, 0.05):
@@ -48,8 +47,8 @@ def calculate_pair_correlation(mc, rdd, name):
 
 
 if __name__ == '__main__':
-    with shelve.open("mc") as db:
-        with shelve.open("rdd") as radial_dist:
+    with shelve.open("./db/mc") as db:
+        with shelve.open("./db/rdd") as radial_dist:
             reduced_volume = "1.73"
             cycle_count = "10"
             db_name = reduced_volume + "_" + cycle_count

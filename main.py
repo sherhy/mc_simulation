@@ -9,42 +9,60 @@ from pressure import calculate_pressure
 
 def main():
     seed('mc')
-    particle_counts = [45, 61, 86, 120, 155, 180, 216]
-    temps = [1, 2, 2.74, 5, 10]
+    particle_counts = [45, 61, 86, 120, 155, 180, 216, 221, 227, 230, 233, 236, 240, 243, 246, 254, ]
+    temps = [0.50, 1.00, 2.74]
 
-    for n in particle_counts:
-        with shelve.open("mc") as mc:
-            reduced_volume = f"{216 / n:.2f}"
-            cycle = run_monte_carlo(mc, n=n, kt=2.74)
-            name = f"{reduced_volume}_{cycle}"
+    for kt in temps:
+        for n in particle_counts:
+            print(f"calculating for kt: {kt} n: {n}")
+            with shelve.open(f"./db/mc_{kt}") as mc:
+                reduced_volume = f"{216 / n:.2f}"
+                with shelve.open(f"./db/cycles_{kt}") as cyc:
+                    cycle = run_monte_carlo(mc, n=n, kt=kt) \
+                        if reduced_volume not in list(cyc.keys()) \
+                        else cyc[f"{reduced_volume}"]
+                name = f"{reduced_volume}_{cycle}"
 
-            with shelve.open("rdd") as rdd:
-                calculate_pair_correlation(mc, rdd, name)
-                # not necessary for calculation
-                graph_name = f"Pair correlation function v={reduced_volume}"
-                plot_pair_correlation(rdd[f"{name}_r"], rdd[f"{name}_g"], graph_name)
+                with shelve.open(f"./db/rdd_{kt}") as rdd:
+                    if f"{name}_g" not in list(rdd.keys()):
+                        calculate_pair_correlation(mc, rdd, name)
 
-                with shelve.open("vdw") as vdw:
-                    vdw[name] = [reduced_volume, calculate_pressure(mc, rdd, name)]
-        break
+                    # not necessary for calculation
+                    graph_name = f"Pair correlation function v={reduced_volume}"
+                    plot_pair_correlation(rdd[f"{name}_r"], rdd[f"{name}_g"], graph_name)
+
+                    with shelve.open(f"./db/vdw_{kt}") as vdw:
+                        pressure = calculate_pressure(mc, rdd, name) if name not in list(vdw.keys()) else vdw[name][1]
+                        print(f"pressure: {pressure:.2f}")
+                        vdw[name] = [reduced_volume, pressure]
+
+    show_van_der_waals()
 
 
 def show_van_der_waals():
-    with shelve.open('vdw') as vdw:
+    print("creating Van Der Waals.png")
+    temps = [1.00, 2.74]
+    all_v_val = list()
+    all_p_val = list()
+    for kt in temps:
         v_values = list()
         p_values = list()
-        skip_list = ['0.72_5', '0.72_10', '1.20_7', '1.00_7', ]
-        # print(list(vdw.keys()))
-        keys = list(vdw.keys())
-        keys.sort()
-        print(keys)
-        for key in keys:
-            if key in skip_list:
-                continue
-            v_values.append(vdw[key][0])
-            p_values.append(vdw[key][1])
-        plot_van_der_waals(v_values, p_values, "Van Der Waals")
+        with shelve.open(f"./db/vdw_{kt}") as vdw:
+            skip_list = ["0.75_7"]
+            keys = list(vdw.keys())
+            keys.sort()
+            # print(keys)
+            for key in keys:
+                if key in skip_list:
+                    continue
+                v_values.append(vdw[key][0])
+                all_v_val.append(vdw[key][0])
+                p_values.append(vdw[key][1])
+                all_p_val.append(vdw[key][1])
+        plot_van_der_waals(v_values, p_values, f"Van Der Waals Equation t={kt}")
+    plot_van_der_waals(all_v_val, all_p_val, "Van Der Waals Equation")
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    show_van_der_waals()

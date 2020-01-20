@@ -85,7 +85,8 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10):
                 "plist": particles,
                 "ghost": ghost_cells,
             }
-            db[f"{Particle.reduced_volume:.2f}"] = cycle
+            with shelve.open("./db/cycles") as cycles:
+                cycles[f"{Particle.reduced_volume:.2f}"] = cycle
             if cycle <= min_run:
                 pass
             elif cycle >= stop_at:
@@ -141,11 +142,9 @@ def run_monte_carlo(db, n=125, kt=2.74, shelved: dict = False, stop_at=10):
 
 
 if __name__ == '__main__':
-    mc = shelve.open("mc")
 
-    # change two parameters
-    # _from = 0
-    # run_monte_carlo(mc, n=125, kt=2.74)
-    run_monte_carlo(mc, shelved=mc['1.73_10'], stop_at=20)
-
-    mc.close()
+    with shelve.open("./db/mc") as mc:
+        # change two parameters
+        # _from = 0
+        # run_monte_carlo(mc, n=125, kt=2.74)
+        run_monte_carlo(mc, shelved=mc['1.73_10'], stop_at=20)

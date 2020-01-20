@@ -71,8 +71,5 @@ def poly_approx(xs, ys, name, deg=14):
 
 
 if __name__ == '__main__':
-    db = shelve.open("mcSimulation")
-
-    # animate()
-
-    db.close()
+    with shelve.open('./db/mc'):
+        animate()

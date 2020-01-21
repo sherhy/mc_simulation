@@ -11,7 +11,7 @@ from van_der_waals import plot_van_der_waals
 def main():
     seed('mc')
     particle_counts = [180, 186, 189, 192, 196, 199, 202, 206, 210, 213, 216, 221, 227, 230, 233, 236, 240, 243, 246, 254, ]
-    temps = [0.25, 0.50, 1.00, 2.74]
+    temps = [0.125, 0.25, 0.50, 1.00, 2.74]
 
     for kt in temps:
         for n in particle_counts:
@@ -41,6 +41,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    # tps = [0.50, 1.00, 2.74]
-    # plot_van_der_waals(tps)
+    # main()
+    tps = [0.125, 0.25, 0.50, 1.00, 2.74]
+    plot_van_der_waals(tps)

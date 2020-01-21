@@ -1,7 +1,6 @@
 import shelve
 
 from plotter import scatter_van_der_waals, clear_plt, poly_approx
-from numpy import log
 
 
 def plot_van_der_waals(kts):
@@ -21,25 +20,21 @@ def plot_van_der_waals(kts):
                 if key in skip_list:
                     continue
                 v_values.append(vdw[key][0])
-                all_v_val.append(vdw[key][0])
                 p_values.append(vdw[key][1])
-                all_p_val.append(vdw[key][1])
-        # print(v_values)
-        # print(p_values)
+        all_v_val.append(v_values)
+        all_p_val.append(p_values)
+        print(v_values)
+        print(p_values)
         clear_plt()
-        poly_approx(v_values, p_values)
-        scatter_van_der_waals(v_values, p_values, f"Van der Waals Isotherms t={kt}")
+        # poly_approx(v_values, p_values, deg=3)
+        scatter_van_der_waals(x=v_values, y=p_values, name=f"Van der Waals Isotherms t={kt}")
 
     clear_plt()
-    scatter_van_der_waals(all_v_val, all_p_val, "Van der Waals Isotherms")
+    for vs, ps in zip(all_v_val, all_p_val):
+        poly_approx(xs=vs, ys=ps, deg=3)
+        scatter_van_der_waals(x=vs, y=ps, name="Van der Waals Isotherms All", ymax=20)
+        # scatter_van_der_waals([],[],name="Van der Waals Isotherms", ymax=10)
 
 
 def maxwell_construction(x, y, name):
     pass
-    # scatter_van_der_waals(all_v_val, all_p_val, "Van der Waals Isotherms")
-
-
-if __name__ == "__main__":
-    pass
-    # temps = [0.50]
-    # plot_van_der_waals(temps)
